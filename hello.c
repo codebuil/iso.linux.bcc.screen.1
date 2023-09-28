@@ -1,139 +1,119 @@
 // need file libdos.c to be compile in directory
 //bcc -x -i -L -Md hello.c -o HELLO.COM
 #define varn 0x0080
-void sstr(i,s);
-void sputc(cc);
-void sputs(cc);
-int bits(value,n);
-void tobin(value,txt);
-int main(){
-	int k=0;
-	int kk=0;
-	unsigned int n=0;
-	char s[80];
-		for (k=0;k<16;k++){
-			n=bset(n,k);
-			sstr(k,s);
-			sputs(s);
-			sputs("	-	$");
-			tobin(k,s);
-			sputs(s);
-			sputs("\r\n\0$");
-			n=breset(n,k);
-		}
+#define stdout 0 
+#define lpt 2 
+#define com1 3 
+#define blue 0x19
+#define lscr1 40
+#define lscr3 80
+int ii;
+void putc(cc,color);
+void puts(s,color);
+void screens(n);
+int colorsbc(backsc,forec);
+void paints(x,y,color,size);
+void locate(x,y);
+void putsn(x,y,s,color,size);
 
-		asm	"db 0xb4,0,0xcd,0x21";
+int main(){
+	int n=0;
+	screens(0x1);
+	for(n=0;n<8;n++){
+		putsn(0,n,"hello world ",colorsbc(n,n+8),11);
+	}
+			asm	"db 0xb4,0,0xcd,0x21";
 		
 	return 0;
 }
 
-void sputc(cc)
+int colorsbc(backsc,forec)
+int backsc;
+int forec;
+{
+	return (backsc << 4) | forec;
+}
+
+
+void puts(s,color)
+char *s;
+int color;
+{
+	int n=0;
+	for(n=0;n<32008;n++){
+		putc(s[n],color);
+		if(s[n]==0)n=32016;
+	}
+}
+
+void putc(cc,color)
 char cc;
+int color;
 {
 	int *c;
 	c = (int * ) varn;
 	*(c + 0) = cc;
+	*(c + 1) = color;
 
-	asm	"db 0xbb,0x80,0x0,0x2e,0x8a,0x17,0xb4,0x02,0xcd,0x21";
+	asm	"db 0x1E,0x06,0x2E,0xA0,0x80,0x00,0x2E,0x8A,0x1E,0x82,0x00,0xB7,0x00,0xB9,0x01,0x00,0xB4,0x0A,0xCD,0x10,0xB4,0x03,0xCD,0x10,0xB7,0x00,0xFE,0xC2,0xB4,0x02,0xCD,0x10,0x90,0x07,0x1F";
 }
-void sstr(i,s)
-unsigned int i;
+
+void paints(x,y,color,size)
+int x;
+int y;
+int color;
+int size;
+{
+	int *c;
+	c = (int * ) varn;
+	*(c + 0) = (y*(lscr1*2))+(x*2)+1;
+	*(c + 1) = color;
+	*(c + 2) = size;
+
+	asm	"db 0x1E,0x06,0x2E,0x8B,0x3E,0x80,0x00,0x2E,0xA0,0x82,0x00,0x2E,0x8B,0x0E,0x84,0x00,0xBA,0x00,0xB8,0x8E,0xC2,0x90,0x26,0x88,0x05,0xF8,0x83,0xC7,0x02,0x49,0x83,0xF9,0x00,0x75,0xF2,0x07,0x1F";
+}
+
+void screens(n)
+int n;
+{
+	int *c;
+	c = (int * ) varn;
+	*(c + 0) = n;
+
+
+	asm	"db 0x1E,0x56,0x8C,0xC8,0x8E,0xD8,0xBE,0x80,0x00,0x2E,0x8A,0x04,0xB4,0x00,0xCD,0x10,0x5E,0x1F";
+}
+
+
+void locate(x,y)
+int x;
+int y;
+{
+	int *c;
+	c = (int * ) varn;
+	*(c + 0) = x;
+	*(c + 1) = y;
+
+
+	asm	"db 0x1E,0x06,0x2E,0x8A,0x16,0x80,0x00,0x2E,0x8A,0x36,0x82,0x00,0xB7,0x00,0xB4,0x02,0xCD,0x10,0x90,0x07,0x1F";
+}
+
+
+void putsn(x,y,s,color,size)
+int x;
+int y;
 char *s;
+int color;
+int size;
 {
-	int n=0;
-	int i10=10;
-	int start=10000;
-	int state=0;
-	int sss=0;
-	int remain=0;
-	int boo=0;
-	char *cursor;
-	char cc;
-	sss=i;
-	cursor=s;
-	
-	for (n=0;n<5;n++){
-		if(n>3)boo=1;
-		state=sss/start;
-		remain=sss-(state*start);
-		sss=remain;
-		cc=(char) state+'0';
-		if(cc!='0')boo=1;
-		if(boo==1)cursor[0]=cc;
-		start=start/i10;
-		if(boo==1)cursor++;
-	}
-	cursor[0]=0;
-}
-
-void sputs(cc)
-char *cc;
-{
-		int i=0;
-while(cc[i]!=0){
-		sputc(cc[i]);
-		i++;
-}
-}
-
-void tobin(value,txt)
-unsigned int value;
-char *txt;
-{
-	int n;
-	int i;
-	for(n=0;n<17;n++)txt[n]='0';
-	for(n=0;n<16;n++){
-		i=bits(value,n);
-		if(i!=0)txt[15-n]='1';
-	}
-	txt[16]=0;
-	txt[17]='$';
-}
-int bits(value,n)
-unsigned int value;
-int n;
-{
-	static unsigned int bitv[]={1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,0,0};
-	unsigned int nn;
-	unsigned nnn;
-	unsigned nnnn;
-	nnnn=value;
-	nn=value & 0x7fff;
-	nn=nn & bitv[n];
-	if(nn!=0)nn=1;
-	if (n==15 && value>0x7fff){
-		nn=1;
-	}
-	if (n==15 && value<0x8000){
-		nn=0;
-	}
-	return nn;
-}
-
-int bset(value,n)
-int value;
-int n;
-{
-	static unsigned int bitv[]={1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,0,0};
-	int nn;
-	nn=value;
-	nn=nn | bitv[n];
-	return nn;
-}
-
-int breset(value,n)
-int value;
-int n;
-{
-	static unsigned int bitv[]={1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,0,0};
-	int nn;
-	int n1;
-	nn=value;
-	n1=~bitv[n];
-	nn=nn & n1;
-	return nn;
-}
+	int *c;
+	c = (int * ) varn;
+	*(c + 0) = x;
+	*(c + 1) = y;
+	*(c + 2) = s;
+	*(c + 3) = color;
+	*(c + 4) = size;
 
 
-
+	asm	"db 0x1E,0x06,0x50,0x53,0x51,0x52,0x56,0x57,0x0E,0x07,0x2E,0x8A,0x16,0x80,0x00,0x2E,0x8A,0x36,0x82,0x00,0x2E,0x8B,0x36,0x84,0x00,0x2E,0x8A,0x1E,0x86,0x00,0x2E,0x8B,0x0E,0x88,0x00,0xB7,0x00,0xB0,0x01,0xB4,0x13,0x55,0x89,0xF5,0xCD,0x10,0x5D,0x90,0x5F,0x5E,0x5A,0x59,0x5B,0x58,0x07,0x1F";
+}
